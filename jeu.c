@@ -1,19 +1,13 @@
-/*
-	Canvas pour algorithmes de jeux à 2 joueurs
-
-	joueur 0 : humain
-	joueur 1 : ordinateur
-
-*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
 
 // Paramètres du jeu
-#define LARGEUR_MAX 9 		// nb max de fils pour un noeud (= nb max de coups possibles)
+#define LARGEUR_MAX 7 		// nb max de fils pour un noeud (= nb max de coups possibles)
+#define HAUTEUR_MAX 6
 
-#define TEMPS 5		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 0		// temps de calcul pour un coup avec MCTS (en secondes)
 
 // macros
 #define AUTRE_JOUEUR(i) (1-(i))
@@ -25,162 +19,14 @@ typedef enum {NON, MATCHNUL, ORDI_GAGNE, HUMAIN_GAGNE } FinDePartie;
 
 // Definition du type Etat (état/position du jeu)
 typedef struct EtatSt {
-
     int joueur; // à qui de jouer ?
-
-    // TODO: à compléter par la définition de l'état du jeu
-
-    /* par exemple, pour morpion: */
-    char plateau[3][3];
-
+    char plateau[HAUTEUR_MAX][LARGEUR_MAX];
 } Etat;
 
-// Definition du type Coup
+// Définition du type Coup
 typedef struct {
-    // TODO: à compléter par la définition d'un coup
-
-    /* par exemple, pour morpion: */
-    int ligne;
     int colonne;
-
 } Coup;
-
-// Copier un état
-Etat * copieEtat( Etat * src ) {
-    Etat * etat = (Etat *)malloc(sizeof(Etat));
-
-    etat->joueur = src->joueur;
-
-
-    // TODO: à compléter avec la copie de l'état src dans etat
-
-    /* par exemple : */
-    int i,j;
-    for (i=0; i< 3; i++)
-        for ( j=0; j<3; j++)
-            etat->plateau[i][j] = src->plateau[i][j];
-
-
-
-    return etat;
-}
-
-// Etat initial
-Etat * etat_initial( void ) {
-    Etat * etat = (Etat *)malloc(sizeof(Etat));
-
-    // TODO: à compléter avec la création de l'état initial
-
-    /* par exemple : */
-    int i,j;
-    for (i=0; i< 3; i++)
-        for ( j=0; j<3; j++)
-            etat->plateau[i][j] = ' ';
-
-    return etat;
-}
-
-
-void afficheJeu(Etat * etat) {
-
-    // TODO: à compléter
-
-    /* par exemple : */
-    int i,j;
-    printf("   |");
-    for ( j = 0; j < 3; j++)
-        printf(" %d |", j);
-    printf("\n");
-    printf("----------------");
-    printf("\n");
-
-    for(i=0; i < 3; i++) {
-        printf(" %d |", i);
-        for ( j = 0; j < 3; j++)
-            printf(" %c |", etat->plateau[i][j]);
-        printf("\n");
-        printf("----------------");
-        printf("\n");
-    }
-}
-
-
-// Nouveau coup
-// TODO: adapter la liste de paramètres au jeu
-Coup * nouveauCoup( int i, int j ) {
-    Coup * coup = (Coup *)malloc(sizeof(Coup));
-
-    // TODO: à compléter avec la création d'un nouveau coup
-
-    /* par exemple : */
-    coup->ligne = i;
-    coup->colonne = j;
-
-    return coup;
-}
-
-// Demander à l'humain quel coup jouer
-Coup * demanderCoup () {
-
-    // TODO...
-
-    /* par exemple : */
-    int i,j;
-    printf("\n quelle ligne ? ") ;
-    scanf("%d",&i);
-    printf(" quelle colonne ? ") ;
-    scanf("%d",&j);
-
-    return nouveauCoup(i,j);
-}
-
-// Modifier l'état en jouant un coup
-// retourne 0 si le coup n'est pas possible
-int jouerCoup( Etat * etat, Coup * coup ) {
-
-    // TODO: à compléter
-
-    /* par exemple : */
-    if ( etat->plateau[coup->ligne][coup->colonne] != ' ' )
-        return 0;
-    else {
-        etat->plateau[coup->ligne][coup->colonne] = etat->joueur ? 'O' : 'X';
-
-        // à l'autre joueur de jouer
-        etat->joueur = AUTRE_JOUEUR(etat->joueur);
-
-        return 1;
-    }
-}
-
-// Retourne une liste de coups possibles à partir d'un etat
-// (tableau de pointeurs de coups se terminant par NULL)
-Coup ** coups_possibles( Etat * etat ) {
-
-    Coup ** coups = (Coup **) malloc((1+LARGEUR_MAX) * sizeof(Coup *) );
-
-    int k = 0;
-
-    // TODO: à compléter
-
-    /* par exemple */
-    int i,j;
-    for(i=0; i < 3; i++) {
-        for (j=0; j < 3; j++) {
-            if ( etat->plateau[i][j] == ' ' ) {
-                coups[k] = nouveauCoup(i,j);
-                k++;
-            }
-        }
-    }
-    /* fin de l'exemple */
-
-    coups[k] = NULL;
-
-    return coups;
-}
-
-
 // Definition du type Noeud
 typedef struct NoeudSt {
 
@@ -199,9 +45,69 @@ typedef struct NoeudSt {
 
 } Noeud;
 
+// Copier un état
+Etat * copieEtat(Etat *src) {
+    Etat *etat = (Etat *)malloc(sizeof(Etat));
+    etat->joueur = src->joueur;
 
-// Créer un nouveau noeud en jouant un coup à partir d'un parent
-// utiliser nouveauNoeud(NULL, NULL) pour créer la racine
+    for (int i = 0; i < HAUTEUR_MAX; i++)
+        for (int j = 0; j < LARGEUR_MAX; j++)
+            etat->plateau[i][j] = src->plateau[i][j];
+
+    return etat;
+}
+
+// Etat initial
+Etat * etat_initial(void) {
+    Etat *etat = (Etat *)malloc(sizeof(Etat));
+    etat->joueur = 0;
+
+    for (int i = 0; i < HAUTEUR_MAX; i++)
+        for (int j = 0; j < LARGEUR_MAX; j++)
+            etat->plateau[i][j] = ' ';
+
+    return etat;
+}
+
+void afficheJeu(Etat *etat) {
+    printf("\n");
+    for (int i = 0; i < HAUTEUR_MAX; i++) {
+        for (int j = 0; j < LARGEUR_MAX; j++)
+            printf("| %c ", etat->plateau[i][j]);
+        printf("|\n");
+    }
+    printf("-----------------------------\n");
+    for (int i = 0; i < LARGEUR_MAX; i++)
+        printf("  %d ", i);
+    printf("\n");
+}
+
+// Nouveau coup
+Coup * nouveauCoup(int colonne) {
+    Coup *coup = (Coup *)malloc(sizeof(Coup));
+    coup->colonne = colonne;
+    return coup;
+}
+
+// Demander à l'humain quel coup jouer
+Coup * demanderCoup() {
+    int colonne;
+    printf("\nDans quelle colonne jouer ? ");
+    scanf("%d", &colonne);
+    return nouveauCoup(colonne);
+}
+
+// Modifier l'état en jouant un coup
+int jouerCoup(Etat *etat, Coup *coup) {
+    for (int i = HAUTEUR_MAX - 1; i >= 0; i--) {
+        if (etat->plateau[i][coup->colonne] == ' ') {
+            etat->plateau[i][coup->colonne] = etat->joueur ? 'O' : 'X';
+            etat->joueur = AUTRE_JOUEUR(etat->joueur);
+            return 1; // Coup valide
+        }
+    }
+    return 0; // Coup invalide
+}
 Noeud * nouveauNoeud (Noeud * parent, Coup * coup ) {
     Noeud * noeud = (Noeud *)malloc(sizeof(Noeud));
 
@@ -226,6 +132,21 @@ Noeud * nouveauNoeud (Noeud * parent, Coup * coup ) {
 
     return noeud;
 }
+// Retourne une liste de coups possibles à partir d'un état
+Coup ** coups_possibles(Etat *etat) {
+    Coup **coups = (Coup **)malloc((1 + LARGEUR_MAX) * sizeof(Coup *));
+    int k = 0;
+
+    for (int i = 0; i < LARGEUR_MAX; i++) {
+        if (etat->plateau[0][i] == ' ')
+            coups[k++] = nouveauCoup(i);
+    }
+
+    coups[k] = NULL;
+    return coups;
+}
+
+
 
 // Ajouter un enfant à un parent en jouant un coup
 // retourne le pointeur sur l'enfant ajouté
@@ -249,162 +170,136 @@ void freeNoeud ( Noeud * noeud) {
 
     free(noeud);
 }
-
-
 // Test si l'état est un état terminal
-// et retourne NON, MATCHNUL, ORDI_GAGNE ou HUMAIN_GAGNE
-FinDePartie testFin( Etat * etat ) {
+// Test si l'état est un état terminal
+FinDePartie testFin(Etat *etat) {
+    for (int i = 0; i < HAUTEUR_MAX; i++) {
+        for (int j = 0; j < LARGEUR_MAX; j++) {
+            char joueur = etat->plateau[i][j];
+            if (joueur != ' ') {
+                // Vérifier les alignements dans toutes les directions
+                if (j + 3 < LARGEUR_MAX &&
+                    (etat->plateau[i][j + 1] == joueur) &&
+                    (etat->plateau[i][j + 2] == joueur) &&
+                    (etat->plateau[i][j + 3] == joueur))
+                    return joueur == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
 
-    // TODO...
+                if (i + 3 < HAUTEUR_MAX) {
+                    if ((etat->plateau[i + 1][j] == joueur) &&
+                        (etat->plateau[i + 2][j] == joueur) &&
+                        (etat->plateau[i + 3][j] == joueur))
+                        return joueur == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
 
-    /* par exemple	*/
+                    if (j + 3 < LARGEUR_MAX &&
+                        (etat->plateau[i + 1][j + 1] == joueur) &&
+                        (etat->plateau[i + 2][j + 2] == joueur) &&
+                        (etat->plateau[i + 3][j + 3] == joueur))
+                        return joueur == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
 
-    // tester si un joueur a gagné
-    int i,j,k,n = 0;
-    for ( i=0;i < 3; i++) {
-        for(j=0; j < 3; j++) {
-            if ( etat->plateau[i][j] != ' ') {
-                n++;	// nb coups joués
-
-                // lignes
-                k=0;
-                while ( k < 3 && i+k < 3 && etat->plateau[i+k][j] == etat->plateau[i][j] )
-                    k++;
-                if ( k == 3 )
-                    return etat->plateau[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
-
-                // colonnes
-                k=0;
-                while ( k < 3 && j+k < 3 && etat->plateau[i][j+k] == etat->plateau[i][j] )
-                    k++;
-                if ( k == 3 )
-                    return etat->plateau[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
-
-                // diagonales
-                k=0;
-                while ( k < 3 && i+k < 3 && j+k < 3 && etat->plateau[i+k][j+k] == etat->plateau[i][j] )
-                    k++;
-                if ( k == 3 )
-                    return etat->plateau[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
-
-                k=0;
-                while ( k < 3 && i+k < 3 && j-k >= 0 && etat->plateau[i+k][j-k] == etat->plateau[i][j] )
-                    k++;
-                if ( k == 3 )
-                    return etat->plateau[i][j] == 'O'? ORDI_GAGNE : HUMAIN_GAGNE;
+                    if (j - 3 >= 0 &&
+                        (etat->plateau[i + 1][j - 1] == joueur) &&
+                        (etat->plateau[i + 2][j - 2] == joueur) &&
+                        (etat->plateau[i + 3][j - 3] == joueur))
+                        return joueur == 'O' ? ORDI_GAGNE : HUMAIN_GAGNE;
+                }
             }
         }
     }
 
-    // et sinon tester le match nul
-    if ( n == 3*3 )
-        return MATCHNUL;
+    for (int j = 0; j < LARGEUR_MAX; j++) {
+        if (etat->plateau[0][j] == ' ')
+            return NON; // Il reste des cases vides, le jeu n'est pas fini
+    }
 
-    return NON;
+    return MATCHNUL; // Toutes les cases sont remplies, c'est un match nul
 }
 
-
-
 // Calcule et joue un coup de l'ordinateur avec MCTS-UCT
-// en tempsmax secondes
-void ordijoue_mcts(Etat * etat, int tempsmax) {
-
+void ordijoue_mcts(Etat *etat, int tempsmax) {
     clock_t tic, toc;
     tic = clock();
     int temps;
 
-    Coup ** coups;
-    Coup * meilleur_coup ;
+    Coup **coups;
+    Coup *meilleur_coup;
 
     // Créer l'arbre de recherche
-    Noeud * racine = nouveauNoeud(NULL, NULL);
+    Noeud *racine = nouveauNoeud(NULL, NULL);
     racine->etat = copieEtat(etat);
 
-    // créer les premiers noeuds:
+    // créer les premiers noeuds
     coups = coups_possibles(racine->etat);
     int k = 0;
-    Noeud * enfant;
-    while ( coups[k] != NULL) {
+    Noeud *enfant;
+    while (coups[k] != NULL) {
         enfant = ajouterEnfant(racine, coups[k]);
         k++;
     }
 
+    meilleur_coup = coups[rand() % k]; // choix aléatoire
 
-    meilleur_coup = coups[ rand()%k ]; // choix aléatoire
-
-    /*  TODO :
-        - supprimer la sélection aléatoire du meilleur coup ci-dessus
-        - implémenter l'algorithme MCTS-UCT pour déterminer le meilleur coup ci-dessous
+    /* TODO: Implémenter l'algorithme MCTS-UCT pour déterminer le meilleur coup ici */
 
     int iter = 0;
 
     do {
+        // À compléter par l'algorithme MCTS-UCT...
 
-
-
-        // à compléter par l'algorithme MCTS-UCT...
-
-
-
+        // ...
 
         toc = clock();
-        temps = (int)( ((double) (toc - tic)) / CLOCKS_PER_SEC );
-        iter ++;
-    } while ( temps < tempsmax );
+        temps = (int)(((double)(toc - tic)) / CLOCKS_PER_SEC);
+        iter++;
+    } while (temps < tempsmax);
 
     /* fin de l'algorithme  */
 
     // Jouer le meilleur premier coup
-    jouerCoup(etat, meilleur_coup );
+    jouerCoup(etat, meilleur_coup);
 
-    // Penser à libérer la mémoire :
+    // Penser à libérer la mémoire
     freeNoeud(racine);
-    free (coups);
+    free(coups);
 }
 
 int main(void) {
-
-    Coup * coup;
+    Coup *coup;
     FinDePartie fin;
 
     // initialisation
-    Etat * etat = etat_initial();
+    Etat *etat = etat_initial();
 
     // Choisir qui commence :
     printf("Qui commence (0 : humain, 1 : ordinateur) ? ");
-    scanf("%d", &(etat->joueur) );
+    scanf("%d", &(etat->joueur));
 
     // boucle de jeu
     do {
         printf("\n");
         afficheJeu(etat);
 
-        if ( etat->joueur == 0 ) {
+        if (etat->joueur == 0) {
             // tour de l'humain
-
             do {
                 coup = demanderCoup();
-            } while ( !jouerCoup(etat, coup) );
-
-        }
-        else {
+            } while (!jouerCoup(etat, coup));
+        } else {
             // tour de l'Ordinateur
-
-            ordijoue_mcts( etat, TEMPS );
-
+            ordijoue_mcts(etat, TEMPS);
         }
 
-        fin = testFin( etat );
-    }	while ( fin == NON ) ;
+        fin = testFin(etat);
+    } while (fin == NON);
 
     printf("\n");
     afficheJeu(etat);
 
-    if ( fin == ORDI_GAGNE )
-        printf( "** L'ordinateur a gagné **\n");
-    else if ( fin == MATCHNUL )
-        printf(" Match nul !  \n");
+    if (fin == ORDI_GAGNE)
+        printf("** L'ordinateur a gagné **\n");
+    else if (fin == MATCHNUL)
+        printf("Match nul !  \n");
     else
-        printf( "** BRAVO, l'ordinateur a perdu  **\n");
+        printf("** BRAVO, l'ordinateur a perdu  **\n");
+
     return 0;
 }
