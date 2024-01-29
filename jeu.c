@@ -7,7 +7,7 @@
 #define LARGEUR_MAX 7 		// nb max de fils pour un noeud (= nb max de coups possibles)
 #define HAUTEUR_MAX 6
 
-#define TEMPS 0		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 5		// temps de calcul pour un coup avec MCTS (en secondes)
 
 // macros
 #define AUTRE_JOUEUR(i) (1-(i))
