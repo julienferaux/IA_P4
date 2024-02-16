@@ -4,11 +4,12 @@
 #include <time.h>
 
 
+
 // Paramètres du jeu
 #define LARGEUR_MAX 7 		// nb max de fils pour un noeud (= nb max de coups possibles)
 #define HAUTEUR_MAX 6
 
-#define TEMPS 5		// temps de calcul pour un coup avec MCTS (en secondes)
+#define TEMPS 3		// temps de calcul pour un coup avec MCTS (en secondes)
 
 // macros
 #define AUTRE_JOUEUR(i) (1-(i))
@@ -264,13 +265,20 @@ int simulation(Noeud *noeud) {
 
     while (testFin(etat_simule) == NON) {
         Coup **coups = coups_possibles(etat_simule);
-        int k = rand() % (LARGEUR_MAX + 1);
+        int k = 0;
 
-        while (coups[k] == NULL) {
-            k = rand() % (LARGEUR_MAX + 1);
+        while (coups[k] != NULL) {
+            k++;
         }
 
-        jouerCoup(etat_simule, coups[k]);
+        if (k == 0) {
+            // Aucun coup possible, fin de la simulation
+            free(coups);
+            break;
+        }
+
+        int coup_aleatoire = rand() % k;
+        jouerCoup(etat_simule, coups[coup_aleatoire]);
         free(coups);
     }
 
@@ -286,6 +294,7 @@ int simulation(Noeud *noeud) {
     }
 }
 
+
 void retropropagation(Noeud *noeud, double score) {
     while (noeud != NULL) {
         noeud->nb_simus++;
@@ -295,6 +304,7 @@ void retropropagation(Noeud *noeud, double score) {
 }
 // Calcule et joue un coup de l'ordinateur avec MCTS-UCT
 void ordijoue_mcts(Etat *etat, int tempsmax) {
+
     clock_t tic, toc;
     tic = clock();
     int temps;
@@ -310,6 +320,7 @@ void ordijoue_mcts(Etat *etat, int tempsmax) {
     coups = coups_possibles(racine->etat);
     int k = 0;
     Noeud *enfant;
+
     while (coups[k] != NULL) {
         enfant = ajouterEnfant(racine, coups[k]);
         k++;
@@ -326,13 +337,17 @@ void ordijoue_mcts(Etat *etat, int tempsmax) {
         expansion(noeud_selectionne);
 
         for (int i = 0; i < noeud_selectionne->nb_enfants; i++) {
+
             double score_simulation = simulation(noeud_selectionne->enfants[i]);
+
             retropropagation(noeud_selectionne->enfants[i], score_simulation);
+
         }
 
         toc = clock();
         temps = (int)(((double)(toc - tic)) / CLOCKS_PER_SEC);
         iter++;
+        //printf("Iteration %d, Temps écoulé : %d secondes\n", iter, temps);
     } while (temps < tempsmax);
 
     // Sélectionner le meilleur coup en fonction des statistiques
@@ -345,15 +360,18 @@ void ordijoue_mcts(Etat *etat, int tempsmax) {
         }
     }
 
+
     // Jouer le meilleur coup
     jouerCoup(etat, meilleur_coup);
 
     // Penser à libérer la mémoire
     freeNoeud(racine);
     free(coups);
+
 }
 
 int main(void) {
+
     Coup *coup;
     FinDePartie fin;
 
