@@ -3,6 +3,7 @@
 #include <math.h>
 #include <time.h>
 
+
 // Paramètres du jeu
 #define LARGEUR_MAX 7 		// nb max de fils pour un noeud (= nb max de coups possibles)
 #define HAUTEUR_MAX 6
@@ -213,7 +214,85 @@ FinDePartie testFin(Etat *etat) {
 
     return MATCHNUL; // Toutes les cases sont remplies, c'est un match nul
 }
+double calculerUCT(Noeud *noeud) {
+    if (noeud->nb_simus == 0) {
+        return INFINITY; // Utiliser une valeur élevée pour les nœuds non explorés
+    }
 
+    double exploration = 1.41; // Paramètre d'exploration, à ajuster si nécessaire
+    double exploitation = (double)noeud->nb_victoires / (double)noeud->nb_simus;
+
+    return exploitation + exploration * sqrt(log(noeud->parent->nb_simus) / (double)noeud->nb_simus);
+}
+
+Noeud *selectionnerNoeud(Noeud *racine) {
+    Noeud *noeud = racine;
+
+    while (noeud->nb_enfants > 0) {
+        double meilleur_uct = -1.0;
+        Noeud *meilleur_enfant = NULL;
+
+        for (int i = 0; i < noeud->nb_enfants; i++) {
+            double uct = calculerUCT(noeud->enfants[i]);
+
+            if (uct > meilleur_uct) {
+                meilleur_uct = uct;
+                meilleur_enfant = noeud->enfants[i];
+            }
+        }
+
+        noeud = meilleur_enfant;
+    }
+
+    return noeud;
+}
+
+void expansion(Noeud *noeud) {
+    Coup **coups = coups_possibles(noeud->etat);
+    int k = 0;
+
+    while (coups[k] != NULL) {
+        ajouterEnfant(noeud, coups[k]);
+        k++;
+    }
+
+    free(coups);
+}
+
+int simulation(Noeud *noeud) {
+    Etat *etat_simule = copieEtat(noeud->etat);
+
+    while (testFin(etat_simule) == NON) {
+        Coup **coups = coups_possibles(etat_simule);
+        int k = rand() % (LARGEUR_MAX + 1);
+
+        while (coups[k] == NULL) {
+            k = rand() % (LARGEUR_MAX + 1);
+        }
+
+        jouerCoup(etat_simule, coups[k]);
+        free(coups);
+    }
+
+    FinDePartie resultat = testFin(etat_simule);
+    free(etat_simule);
+
+    if (resultat == HUMAIN_GAGNE) {
+        return 0;
+    } else if (resultat == ORDI_GAGNE) {
+        return 1;
+    } else {
+        return 0.5; // Match nul
+    }
+}
+
+void retropropagation(Noeud *noeud, double score) {
+    while (noeud != NULL) {
+        noeud->nb_simus++;
+        noeud->nb_victoires += score;
+        noeud = noeud->parent;
+    }
+}
 // Calcule et joue un coup de l'ordinateur avec MCTS-UCT
 void ordijoue_mcts(Etat *etat, int tempsmax) {
     clock_t tic, toc;
@@ -243,18 +322,30 @@ void ordijoue_mcts(Etat *etat, int tempsmax) {
     int iter = 0;
 
     do {
-        // À compléter par l'algorithme MCTS-UCT...
+        Noeud *noeud_selectionne = selectionnerNoeud(racine);
+        expansion(noeud_selectionne);
 
-        // ...
+        for (int i = 0; i < noeud_selectionne->nb_enfants; i++) {
+            double score_simulation = simulation(noeud_selectionne->enfants[i]);
+            retropropagation(noeud_selectionne->enfants[i], score_simulation);
+        }
 
         toc = clock();
         temps = (int)(((double)(toc - tic)) / CLOCKS_PER_SEC);
         iter++;
     } while (temps < tempsmax);
 
-    /* fin de l'algorithme  */
+    // Sélectionner le meilleur coup en fonction des statistiques
+    double meilleur_score = -1.0;
+    for (int i = 0; i < racine->nb_enfants; i++) {
+        double score = (double)racine->enfants[i]->nb_victoires / (double)racine->enfants[i]->nb_simus;
+        if (score > meilleur_score) {
+            meilleur_score = score;
+            meilleur_coup = racine->enfants[i]->coup;
+        }
+    }
 
-    // Jouer le meilleur premier coup
+    // Jouer le meilleur coup
     jouerCoup(etat, meilleur_coup);
 
     // Penser à libérer la mémoire
