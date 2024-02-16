@@ -5,7 +5,7 @@
 
 
 
-// Paramètres du jeu
+// Paramètres du  jeu
 #define LARGEUR_MAX 7 		// nb max de fils pour un noeud (= nb max de coups possibles)
 #define HAUTEUR_MAX 6
 
