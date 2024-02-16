@@ -64,7 +64,7 @@ Etat * etat_initial(void) {
 
     for (int i = 0; i < HAUTEUR_MAX; i++)
         for (int j = 0; j < LARGEUR_MAX; j++)
-            etat->plateau[i][j] = ' ';
+                etat->plateau[i][j] = ' ';
 
     return etat;
 }
